@@ -1,0 +1,199 @@
+---
+title: "WEEK-13-IP"
+author: "Mokaya Lydia"
+date: "24/7/2020"
+output: html_document 
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Defining The Question
+You are a Data analyst at Carrefour Kenya and are currently undertaking a project that will inform the marketing department on the most relevant marketing strategies that will result in the highest no. of sales (total price including tax). Your project has been divided into three parts where you'll explore a recent marketing dataset by performing various unsupervised learning techniques and later providing recommendations based on your insights   
+
+# Understanding The context
+Carrefour, one of the largest hypermarket chains in the world was introduced to the Middle East and North Africa (MENA) market in 1995 by Majid Al Futtaim, the leading shopping mall, retail and leisure pioneer across MENA.
+Carrefour has become the most dynamic, fast-moving and exciting hypermarket chain in the region and shared its growth with more than 38,000 employees from more than 70 nationalities in 15 countries, providing shoppers with variety and value-for-money. 
+
+# Metric for Success
+Create association rules that will allow you to identify relationships between variables in the dataset.
+
+# Experimental Design 
+1. Problem statement
+2. Loading the Dataset
+3. Check the Data
+4. Implement the Solution
+
+# Data Relevance
+ Provided dataset comprises of groups of items that will be associated with others.
+ 
+```{r}
+# Installing neccessary packages
+install.packages("arules")
+library(arules)
+```
+## Loading the dataset
+```{r}
+# Load dataset
+path <- "Supermarket_Sales_Dataset II.csv"
+data<-read.transactions(path, sep = ",")
+data
+```
+```{r}
+# Verifying the object's class
+# ---
+# This should show us transactions as the type of data that we will need
+# ---
+# 
+class(data)
+```
+```{r}
+# Previewing our first 5 transactions
+#
+inspect(data[1:5])
+```
+```{r}
+
+# If we wanted to preview the items that make up our dataset,
+# alternatively we can do the following
+# ---
+# 
+items<-as.data.frame(itemLabels(data))
+colnames(items) <- "Item"
+head(items, 10)
+```
+```{r}
+# Generating a summary of the data dataset
+# ---
+# This would give us some information such as the most purchased items, 
+# distribution of the item sets (no. of items purchased in each transaction), etc.
+# ---
+# 
+summary(data)
+```
+```{r}
+# Exploring the frequency of some articles 
+# i.e. transactions ranging from 3 to 10 and performing 
+# some operation in percentage terms of the total transactions 
+# 
+itemFrequency(data[, 3:10],type = "absolute")
+round(itemFrequency(data[, 3:10],type = "relative")*100,2)
+
+```
+```{r}
+# Producing a chart of frequencies and filtering 
+# to consider only items with a minimum percentage 
+# of support/ considering a top x of items
+# ---
+# Displaying top 10 most common items in the transactions dataset 
+# and the items whose relative importance is at least 10%
+# 
+par(mfrow = c(1, 2))
+
+# plot the frequency of items
+itemFrequencyPlot(data, topN = 10,col="skyblue")
+itemFrequencyPlot(data, support = 0.1,col="purple")
+```
+```{r}
+# Building a model based on association rules 
+# using the apriori function 
+# ---
+# We use Min Support as 0.001 and confidence as 0.8
+# ---
+# 
+rules <- apriori (data, parameter = list(supp = 0.001, conf = 0.8))
+rules
+```
+```{r}
+# We use measures of significance and interest on the rules, 
+# determining which ones are interesting and which to discard.
+# ---
+# However since we built the model using 0.001 Min support 
+# and confidence as 0.8 we obtained 74 rules.
+# However, in order to illustrate the sensitivity of the model to these two parameters, 
+# we will see what happens if we increase the support or lower the confidence level
+# 
+
+# Building a apriori model with Min Support as 0.002 and confidence as 0.8.
+rules2 <- apriori (data,parameter = list(supp = 0.002, conf = 0.8)) 
+
+# Building apriori model with Min Support as 0.002 and confidence as 0.6.
+rules3 <- apriori (data, parameter = list(supp = 0.001, conf = 0.6)) 
+
+rules2
+
+rules3
+```
+#observations
+In our first model, we increased the minimum support of 0.001 to 0.002 and model rules went from 74 to only 2. This would lead us to understand that using a high level of support can make the model lose interesting rules.
+
+In the second model, we decreased the minimum confidence level to 0.6 and the number of model rules went from 74 to 545. This would mean that using a low confidence level increases the number of rules to quite an extent and many will not be useful.
+
+```{r}
+
+# We can perform an exploration of our model 
+# through the use of the summary function as shown
+# ---
+# Upon running the code, the function would give us information about the model 
+# i.e. the size of rules, depending on the items that contain these rules. 
+# In our above case, most rules have 3 and 4 items though some rules do have upto 6. 
+# More statistical information such as support, lift and confidence is also provided.
+# ---
+# 
+summary(rules)
+
+```
+```{r}
+# Observing rules built in our model i.e. first 5 model rules
+# ---
+# 
+inspect(rules[1:5])
+```
+Interpretation of the first rule:
+
+If someone buys frozen smoothie and spinach, they are 89% likely to buy mineral water too
+```{r}
+# Ordering these rules by a criteria such as the level of confidence
+# then looking at the first five rules.
+# We can also use different criteria such as: (by = "lift" or by = "support")
+# 
+rules<-sort(rules, by="confidence", decreasing=TRUE)
+inspect(rules[1:5])
+```
+The given first four rules have a confidence of 100%.
+
+```{r}
+# If we're interested in making a promotion relating to the sale of mineral water, 
+# we could create a subset of rules concerning these products 
+# ---
+# This would tell us the items that the customers bought before purchasing mineral
+# ---
+# 
+mineral_water <- subset(rules, subset = rhs %pin% "mineral water")
+ 
+# Then order by confidence
+mineral_water<-sort(mineral_water, by="confidence", decreasing=TRUE)
+inspect(mineral_water[1:5])
+```
+Observation
+
+The first 5 gives 90% confidence
+```{r}
+# What if we wanted to determine items that customers might buy 
+# who have previously bought mineral water?
+# ---
+# 
+# Subset the rules
+mineral_water <- subset(rules, subset = lhs %pin% "mineral water")
+
+# Order by confidence
+mineral_water<-sort(mineral_water, by="confidence", decreasing=TRUE)
+
+# inspect top 5
+inspect(mineral_water[1:5])
+```
+
+
+
+
+

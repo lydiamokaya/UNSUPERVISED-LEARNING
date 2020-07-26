@@ -1,0 +1,122 @@
+---
+title: "WEEK-13-IP"
+author: "Mokaya Lydia"
+date: "24/7/2020"
+output: html_document 
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Defining The Question
+You are a Data analyst at Carrefour Kenya and are currently undertaking a project that will inform the marketing department on the most relevant marketing strategies that will result in the highest no. of sales (total price including tax). Your project has been divided into three parts where you'll explore a recent marketing dataset by performing various unsupervised learning techniques and later providing recommendations based on your insights   
+
+# Understanding The context
+Carrefour, one of the largest hypermarket chains in the world was introduced to the Middle East and North Africa (MENA) market in 1995 by Majid Al Futtaim, the leading shopping mall, retail and leisure pioneer across MENA.
+Carrefour has become the most dynamic, fast-moving and exciting hypermarket chain in the region and shared its growth with more than 38,000 employees from more than 70 nationalities in 15 countries, providing shoppers with variety and value-for-money. 
+
+# Metric for Success
+Check whether there are any anomalies in the given sales dataset.
+
+# Experimental Design 
+1. Problem statement
+2. Loading the Dataset
+3. Check the Data
+4. Implement the Solution
+
+```{r}
+# Installing packages
+install.packages("anomalize")
+library(anomalize)
+```
+```{r}
+install.packages("tidyverse")
+library(tidyverse)
+```
+
+
+```{r}
+data <- read.csv("Supermarket_Sales_Forecasting - Sales.csv")
+head(data)
+```
+```{r}
+dim(data)
+```
+The dataset has 1000 rows and 2 columns
+```{r}
+# Checking data structure
+str(data)
+```
+Dataset is a dataframe
+Date should have datetime datatype
+Sales column has the correct datatype
+```{r}
+# Converting sales from a factor to date type
+data$Date <- as.Date(data$Date, "%m/%d/%Y")
+```
+
+```{r}
+# Checking new data structure.
+str(data)
+```
+# EXPLORATORY Data Analysis
+```{r}
+install.packages("ggplot2")
+library(ggplot2)
+```
+
+```{r}
+# Sales distribution over time
+
+ggplot(data = data, aes(x = Date, y = Sales)) +
+      geom_bar(stat = "identity", fill = "maroon") +
+      labs(title = "Sales distribution",
+           x = "Date", y = "Sales(ksh)")
+```
+We observe a fluctuation in sales over the months, the highest being in March.
+
+```{r}
+#Ordering the data by Date
+data = data %>% arrange(Date)
+head(data)
+```
+```{r}
+# Since our data has many records per day, 
+# We get the average per day, so that the data
+data = aggregate(Sales ~ Date, data, mean)
+head(data)
+```
+```{r}
+# Converting data frame to a tibble time (tbl_time)
+# tbl_time have a time index that contains information about which column 
+# should be used for time-based subsetting and other time-based manipulation,
+library(tibbletime)
+data = tbl_time(data, Date)
+class(data)
+
+```
+```{r}
+# Checking the dimensions of the reduced data set
+dim(data)
+```
+# Detecting our anomalies
+We now use the following functions to detect and visualize anomalies; We decomposed the “count” column into “observed”, “season”, “trend”, and “remainder” columns. The default values for time series decompose are method = "stl", which is just seasonal decomposition using a Loess smoother (refer to stats::stl()).
+
+The frequency and trend parameters are automatically set based on the time scale (or periodicity) of the time series using tibbletime based function under the hood. time_decompose() - this function would help with time series decomposition.
+
+anomalize() - We perform anomaly detection on the decomposed data using the remainder column through the use of the anomalize() function which procides 3 new columns; “remainder_l1” (lower limit), “remainder_l2” (upper limit), and “anomaly” (Yes/No Flag).
+
+The default method is method = "iqr", which is fast and relatively accurate at detecting anomalies. The alpha parameter is by default set to alpha = 0.05, but can be adjusted to increase or decrease the height of the anomaly bands, making it more difficult or less difficult for data to be anomalous. The max_anoms parameter is by default set to a maximum of max_anoms = 0.2 for 20% of data that can be anomalous.
+
+time_recompose() - We create the lower and upper bounds around the “observed” values through the use of the time_recompose() function, which recomposes the lower and upper bounds of the anomalies around the observed values. We create new columns created: “recomposed_l1” (lower limit) and “recomposed_l2” (upper limit).
+
+plot_anomalies() - we now plot using plot_anomaly_decomposition() to visualize out data.
+```{r}
+# detecting anomalies
+data %>%
+    time_decompose(Sales) %>%
+    anomalize(remainder) %>%
+    time_recompose() %>%
+    plot_anomalies(time_recomposed = TRUE, ncol = 3, alpha_dots = 0.5)
+```
+Our data has no anomalies.

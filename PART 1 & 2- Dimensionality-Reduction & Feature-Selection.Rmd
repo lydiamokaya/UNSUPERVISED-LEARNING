@@ -1,0 +1,274 @@
+---
+title: "WEEK-13-IP"
+author: "Mokaya Lydia"
+date: "24/7/2020"
+output: html_document 
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Defining The Question
+You are a Data analyst at Carrefour Kenya and are currently undertaking a project that will inform the marketing department on the most relevant marketing strategies that will result in the highest no. of sales (total price including tax). Your project has been divided into three parts where you'll explore a recent marketing dataset by performing various unsupervised learning techniques and later providing recommendations based on your insights   
+
+# Understanding The context
+Carrefour, one of the largest hypermarket chains in the world was introduced to the Middle East and North Africa (MENA) market in 1995 by Majid Al Futtaim, the leading shopping mall, retail and leisure pioneer across MENA.
+Carrefour has become the most dynamic, fast-moving and exciting hypermarket chain in the region and shared its growth with more than 38,000 employees from more than 70 nationalities in 15 countries, providing shoppers with variety and value-for-money. 
+
+# Metric for Success
+1. Reduce the dataset to a low dimensional dataset using the t-SNE algorithm or PCA. Perform analysis and provide insights gained from your analysis.
+
+2. Perform feature selection and provide insights on the features that are of more importance for analysis.
+
+# Experimental Design 
+1. Problem statement
+2. Loading the Dataset
+3. Check the Data
+4. Perform Data Cleaning
+5. Perform Exploratory Data Analysis (Univariate, Bivariate & Multivariate)
+6. Implement the Solution
+
+
+# Data Relevance
+
+```{r}
+# Installing neccessary packages
+install.packages("dplyr")
+library(dplyr)
+install.packages("Rtsne")
+library(Rtsne)
+install.packages("caret")
+library(caret)
+install.packages("corrplot")
+library(corrplot)
+```
+
+
+
+## Loading the dataset
+```{r}
+# Load dataset
+carrefour <- read.csv("Supermarket_Dataset_1 - Sales Data.csv")
+head(carrefour)
+```
+## Check the data
+```{r}
+# Structure of the dataset
+str(carrefour)
+```
+```{r}
+# Dimension of the dataset
+dim(carrefour)
+```
+The dataset had 1000 rows and 16 columns
+```{r}
+# Summary of the dataset
+summary(carrefour)
+```
+## Data Cleaning
+```{r}
+# Missing Values
+colSums(is.na(carrefour))
+
+```
+There are no missing values in the dataset
+
+```{r}
+# check the columns name
+names(carrefour)
+
+```
+```{r}
+# Checking for Duplicates
+sum(duplicated(carrefour))
+```
+There are no duplicated rows
+```{r}
+# Change datatypes to the correct ones:
+
+# To Numeric datatype
+g = c('Branch', 'Gender','Customer.type', 'Product.line', 'Payment')
+for (i in g){
+    carrefour[,i] = as.numeric(carrefour[,i])
+}
+
+```
+
+
+```{r}
+# Outliers
+# Subset your data to numerical columns only
+num <- carrefour[, c(1,2,3,4,5,6,7,8,11,12,13,14,15,16)]
+boxplot(num,
+main = "Outliers in Numerical Columns",
+xlab = "Columns",
+col = "blue",
+border = "black")
+
+```
+ outliers are on cogs and Total columns
+
+```{r}
+# getting a clear visualization of the outliers in the cogs column
+boxplot(carrefour$cogs,
+main = "Outliers in 'cogs' Colum",
+xlab = "cogs",
+col = "red",
+border = "black",
+horizontal = TRUE,
+notch = TRUE
+)
+
+```
+
+```{r}
+# getting a clear visualization of the outliers in the total column
+boxplot(carrefour$Total,
+main = "Outliers in 'Total' Colum",
+xlab = "Total",
+col = "pink",
+border = "black",
+horizontal = TRUE,
+notch = TRUE
+)
+
+```
+```{r}
+# Dropping the unnecessary Date and Time columns and gross.margin.percentage since it has a constant value.
+carrefour = carrefour[,c(-9,-10,-13)]
+names(carrefour)
+
+```
+## EXPLORATORY DATA ANALYSIS.
+### Univariate Analysis
+```{r}
+install.packages("DataExplorer")
+library(DataExplorer)
+```
+
+```{r}
+# Histogram for numerical columns
+hist(carrefour$cogs)
+hist(carrefour$gross.income)
+hist(carrefour$Payment)
+hist(carrefour$Product.line)
+hist(carrefour$Quantity)
+hist(carrefour$Rating)
+hist(carrefour$Unit.price)
+```
+```{r}
+head(carrefour)
+```
+
+### Bivariate Analysis
+```{r}
+# Correlation Matrix
+data.num <- carrefour[, sapply(carrefour, is.numeric)]
+data.cor = cor(data.num)
+
+library(corrplot)
+corrplot(data.cor)
+
+```
+### Multivariate Analysis
+PART 1: DIMENSINALITY REDUCTION
+```{r}
+#Principal Component Analysis (PCA)
+# We then pass df to the prcomp(). We also set two arguments, center and scale, 
+# to be TRUE then preview our object with summary
+# ---
+# 
+df.pca <- prcomp(carrefour[,c(5,6,7,8,9:12)], center = TRUE, scale. = TRUE)
+summary(df.pca)
+
+```
+Each explains a percentage of the total variation of the dataset
+
+PC1 explains 49.11% of the cumulative proportion.
+PC5 explains 98.94% of the variance and so on.
+
+
+```{r}
+# We then call str() to have a look at the PCA object.
+
+str(df.pca)
+
+```
+```{r}
+#plotting the pca variance
+plot(df.pca, type="l")
+
+```
+```{r}
+# Installing our ggbiplot visualisation package
+# 
+install.packages("devtools",dependencies=TRUE)
+library(devtools)
+install_github("vqv/ggbiplot", force = TRUE)
+library(ggbiplot)
+
+```
+
+```{r}
+# visualizing the pca
+ggbiplot(df.pca)
+```
+```{r}
+#compare our PCA results to tSNE.
+# # Executing the algorithm on curated data
+
+tsne <- Rtsne(data.num, dims =2, perplexity = 30, verbosity = TRUE,
+      max_iter = 500)
+
+# getting the time it takes to execute
+
+exeTimeTsne <- system.time(Rtsne(data.num, dims = 2, perplexity = 30,
+verbose = TRUE, max_iter = 500))
+```
+
+PART 2: FEATURE SELECTION.
+```{r}
+# Remove columns with standard deviation of zero
+data.num <- carrefour[, sapply(carrefour, is.numeric)]
+
+data.num <- data.num[, !sapply(data.num, function(x) { sd(x) == 0} )]
+
+```
+
+
+```{r}
+# Calculating the correlation matrix
+# ---
+#
+correlationMatrix <- cor(data.num)
+correlationMatrix
+```
+```{r}
+# Find attributes that are highly correlated
+# ---
+#
+highlyCorrelated <- findCorrelation(correlationMatrix, cutoff=0.75)
+names(data.num[,highlyCorrelated])
+
+```
+
+```{r}
+# Removing Redundant Features 
+# ---
+# 
+drop <-data.num[-highlyCorrelated]
+```
+
+```{r}
+# Performing our graphical comparison
+# ---
+# 
+par(mfrow = c(1, 2))
+corrplot(data.cor, order = "hclust")
+corrplot(cor(drop), order = "hclust")
+
+```
+After feature selection we see that irrelevant and redundant features have been removed
+
+
+
